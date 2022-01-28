@@ -70,7 +70,7 @@ func InstallMaster(mode, datadir, pass, tag string) error {
 		return err
 	}
 
-	if err := InitDocker(mode, masterTemplate, env, true, tag); err != nil {
+	if err := InitDocker(mode, masterTemplate, env, true, tag, mainIP); err != nil {
 		return err
 	}
 

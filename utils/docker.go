@@ -51,12 +51,12 @@ func InstallDocker(mode string) error {
 	return nil
 }
 
-func InitDocker(mode, composerTemplate string, env []string, master bool, tag string) error {
+func InitDocker(mode, composerTemplate string, env []string, master bool, tag string, advertisingIP string) error {
 	if err := InstallDocker(mode); err != nil {
 		return err
 	}
 	
-	if err := RunEnvCmd(mode, env, "docker", "swarm", "init", "--advertise-addr", "$SCANNER_IP"); err != nil {
+	if err := RunEnvCmd(mode, env, "docker", "swarm", "init", "--advertise-addr", advertisingIP); err != nil {
 		return err
 	}
 
