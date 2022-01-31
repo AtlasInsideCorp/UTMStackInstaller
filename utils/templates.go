@@ -231,20 +231,20 @@ services:
       - ELASTICSEARCH_HOST=${DB_HOST}
       - ELASTICSEARCH_PORT=9200
       - TOMCAT_ADMIN_USER=admin
-      - TOMCAT_ADMIN_PASSWORD=${DB_PASS}
+      - "TOMCAT_ADMIN_PASSWORD=${DB_PASS}"
       - POSTGRESQL_USER=postgres
-      - POSTGRESQL_PASSWORD=${DB_PASS}
+      - "POSTGRESQL_PASSWORD=${DB_PASS}"
       - POSTGRESQL_HOST=${DB_HOST}
       - POSTGRESQL_PORT=5432
       - POSTGRESQL_DATABASE=utmstack
       - OPENVAS_HOST=openvas
       - OPENVAS_PORT=9390
       - OPENVAS_USER=admin
-      - OPENVAS_PASSWORD=${DB_PASS}
+      - "OPENVAS_PASSWORD=${DB_PASS}"
       - OPENVAS_PG_PORT=5432
       - OPENVAS_PG_DATABASE=gvmd
       - OPENVAS_PG_USER=gvm
-      - OPENVAS_PG_PASSWORD=${DB_PASS}
+      - "OPENVAS_PG_PASSWORD=${DB_PASS}"
       - JRE_HOME=/opt/tomcat/bin/jre
       - JAVA_HOME=/opt/tomcat/bin/jre
       - CATALINA_BASE=/opt/tomcat/
@@ -261,7 +261,7 @@ services:
     environment:
       - SERVER_NAME
       - POSTGRESQL_USER=postgres
-      - POSTGRESQL_PASSWORD=${DB_PASS}
+      - "POSTGRESQL_PASSWORD=${DB_PASS}"
       - POSTGRESQL_HOST=${DB_HOST}
       - POSTGRESQL_PORT=5432
       - POSTGRESQL_DATABASE=utmstack
@@ -277,7 +277,7 @@ services:
     volumes:
       - ${UTMSTACK_RULES}:/srv
     environment:
-      - PASSWORD=${DB_PASS}
+      - "PASSWORD=${DB_PASS}"
     deploy:
       resources:
         limits:
@@ -295,8 +295,8 @@ services:
       - "9392:9392"
     environment:
       - USERNAME=admin
-      - PASSWORD=${DB_PASS}
-      - DB_PASSWORD=${DB_PASS}
+      - "PASSWORD=${DB_PASS}"
+      - "DB_PASSWORD=${DB_PASS}"
       - HTTPS=0
     deploy:
       resources:
