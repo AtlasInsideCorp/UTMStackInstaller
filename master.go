@@ -2,20 +2,21 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/AtlasInsideCorp/UTMStackInstaller/utils"
 )
 
 func Master(c *Config) error {
-	if err := utils.CheckMem(8); err != nil {
+	if err := utils.CheckMem(6); err != nil {
 		return err
 	}
 
-	if err := utils.CheckCPU(4); err != nil {
+	if err := utils.CheckCPU(2); err != nil {
 		return err
 	}
 
-	if err := utils.CheckDisk(200); err != nil {
+	if err := utils.CheckDisk(100); err != nil {
 		return err
 	}
 
@@ -83,7 +84,7 @@ func Master(c *Config) error {
 		fmt.Println("Initializing Swarm [OK]")
 	}
 
-	fmt.Println("Installing Stack. This may take a while")
+	fmt.Println("Installing Stack. This may take a while.")
 
 	if err := StackUP(c, stack); err != nil {
 		return err
@@ -104,44 +105,88 @@ func Master(c *Config) error {
 	}
 
 	if utils.GetStep() < 7 {
-		fmt.Println("Initializing OpenSearch. This may take a while")
-		if err := InitOpenSearch(); err != nil {
-			return err
+		fmt.Println("Initializing PostgreSQL")
+		for i := 0; i < 10; i++ {
+			if err := InitPostgres(c); err != nil {
+				if i > 8 {
+					return err
+				}
+				time.Sleep(10 * time.Second)
+			} else {
+				break
+			}
 		}
 
 		if err := utils.SetStep(7); err != nil {
 			return err
 		}
-		fmt.Println("Initializing OpenSearch [OK]")
+
+		fmt.Println("Initializing PostgreSQL [OK]")
 	}
 
 	if utils.GetStep() < 8 {
-		fmt.Println("Initializing PostgreSQL")
-		if err := InitPostgres(c); err != nil {
+		fmt.Println("Initializing OpenSearch. This may take a while.")
+		if err := InitOpenSearch(); err != nil {
 			return err
 		}
 
 		if err := utils.SetStep(8); err != nil {
 			return err
 		}
-		fmt.Println("Initializing PostgreSQL [OK]")
+		fmt.Println("Initializing OpenSearch [OK]")
 	}
 
-	fmt.Println("Running post installation scripts")
+	fmt.Println("Waiting for Backend to be ready. This may take a while.")
+
+	if err := Backend(); err != nil {
+		return err
+	}
+
+	fmt.Println("Waiting for Backend to be ready [OK]")
+
+	if utils.GetStep() < 9 {
+		fmt.Println("Generating Connection Key")
+		if err := RegenerateKey(c.InternalKey); err != nil {
+			return err
+		}
+
+		if err := utils.SetStep(9); err != nil {
+			return err
+		}
+		fmt.Println("Generating Connection Key [OK]")
+	}
+
+	if utils.GetStep() < 10 {
+		fmt.Println("Generating Base URL")
+		if err := SetBaseURL(c.Password, c.ServerName); err != nil {
+			return err
+		}
+
+		if err := utils.SetStep(10); err != nil {
+			return err
+		}
+		fmt.Println("Generating Base URL [OK]")
+	}
+
+	if utils.GetStep() < 11 {
+		fmt.Println("Sending sample logs")
+		if err := SendSampleData(); err != nil {
+			return err
+		}
+
+		if err := utils.SetStep(11); err != nil {
+			return err
+		}
+		fmt.Println("Sending sample logs [OK]")
+	}
+
+	fmt.Println("Running post installation scripts. This may take a while.")
 
 	if err := PostInstallation(); err != nil {
 		return err
 	}
 
 	fmt.Println("Running post installation scripts [OK]")
-
-	fmt.Println("Initializing Web-GUI. This may take a while")
-
-	if err := Backend(); err != nil {
-		return err
-	}
-
-	fmt.Println("Initializing Web-GUI [OK]")
 
 	fmt.Println("Installation fisnished successfully. We have generated a configuration file for you, please do not modify or remove it. You can find it at /root/utmstack.yml.")
 	fmt.Println("You can also use it to re-install your stack in case of a disaster or changes in your hardware. Just run the installer again.")

@@ -115,37 +115,25 @@ func (c *Compose) Populate(conf *Config, stack *StackConfig) *Compose {
 		Command: []string{"python3", "-m", "utmstack.mutate"},
 	}
 
-	c.Services["probeapi"] = Service{
-		Image: utils.Str("utmstack.azurecr.io/datasources:" + conf.Branch),
-		Volumes: []string{
-			stack.Datasources + ":/etc/utmstack",
-			stack.Cert + ":/cert",
-		},
-		Environment: []string{
-			"SERVER_NAME=" + conf.ServerName,
-			"SERVER_TYPE=" + conf.ServerType,
-			"DB_HOST=postgres",
-			"DB_PASS=" + conf.Password,
-		},
-		Logging: &dLogging,
-		Deploy: &Deploy{
-			Placement: &pManager,
-		},
-		Command: []string{"/pw.sh"},
-	}
-
 	c.Services["agentmanager"] = Service{
 		Image: utils.Str("utmstack.azurecr.io/agent-manager:" + conf.Branch),
 		Volumes: []string{
 			stack.Cert + ":/cert",
-			stack.Datasources + ":/etc/utmstack",
+			//stack.Datasources + ":/etc/utmstack",
+			"agent_manager:/data",
 		},
 		Ports: []string{
-			"9000:9000",
+			"9000:50051",
 		},
 		Environment: []string{
+			"DB_PATH=/data/utmstack.db",
+			"INTERNAL_KEY=" + conf.InternalKey,
+			"UTM_HOST=http://backend:8080",
+			"DB_USER=postgres",
+			"DB_PASSWORD=" + conf.Password,
 			"DB_HOST=postgres",
-			"DB_PASS=" + conf.Password,
+			"DB_PORT=5432",
+			"DB_NAME=agentmanager",
 		},
 		Logging: &dLogging,
 		Deploy: &Deploy{
@@ -154,9 +142,8 @@ func (c *Compose) Populate(conf *Config, stack *StackConfig) *Compose {
 		DependsOn: []string{
 			"postgres",
 			"node1",
-			"backend",
 		},
-		Command: []string{"/run.sh"},
+		Command: []string{"/app/server"},
 	}
 
 	c.Services["postgres"] = Service{
@@ -260,28 +247,30 @@ func (c *Compose) Populate(conf *Config, stack *StackConfig) *Compose {
 		Command: []string{"python3", "-m", "utmstack.sophos"},
 	}
 
-	c.Services["logan"] = Service{
-		Image: utils.Str("utmstack.azurecr.io/datasources:" + conf.Branch),
+	c.Services["bitdefender"] = Service{
+		Image: utils.Str("utmstack.azurecr.io/bitdefender:" + conf.Branch),
 		DependsOn: []string{
-			"postgres",
-			"node1",
 			"backend",
+			"logstash",
+		},
+		Ports: []string{
+			"8000:8000",
 		},
 		Volumes: []string{
 			stack.Datasources + ":/etc/utmstack",
 		},
 		Environment: []string{
-			"SERVER_NAME=" + conf.ServerName,
-			"DB_PASS=" + conf.Password,
+			"PANEL_SERV_NAME=backend:8080",
+			"INTERNAL_KEY=" + conf.InternalKey,
+			"SYSLOG_PROTOCOL=tcp",
+			"SYSLOG_HOST=logstash",
+			"SYSLOG_PORT=514",
+			"CONNECTOR_PORT=8000",
 		},
 		Logging: &dLogging,
 		Deploy: &Deploy{
 			Placement: &pManager,
 		},
-		Ports: []string{
-			"50051:50051",
-		},
-		Command: []string{"python3", "-m", "utmstack.logan"},
 	}
 
 	c.Services["backend"] = Service{
@@ -289,6 +278,7 @@ func (c *Compose) Populate(conf *Config, stack *StackConfig) *Compose {
 		DependsOn: []string{
 			"postgres",
 			"node1",
+			"agentmanager",
 		},
 		Environment: []string{
 			"SERVER_NAME=" + conf.ServerName,
@@ -301,6 +291,8 @@ func (c *Compose) Populate(conf *Config, stack *StackConfig) *Compose {
 			"ELASTICSEARCH_PORT=9200",
 			"INTERNAL_KEY=" + conf.InternalKey,
 			"SOC_AI_BASE_URL=http://socai:8080/process",
+			"GRPC_AGENT_MANAGER_HOST=agentmanager",
+			"GRPC_AGENT_MANAGER_PORT=50051",
 		},
 		Logging: &dLogging,
 		Deploy: &Deploy{
@@ -328,6 +320,9 @@ func (c *Compose) Populate(conf *Config, stack *StackConfig) *Compose {
 			"postgres",
 			"node1",
 			"backend",
+		},
+		Ports: []string{
+			"10000:8080",
 		},
 		Volumes: []string{
 			stack.Rules + ":/app/rulesets",
@@ -408,6 +403,10 @@ func (c *Compose) Populate(conf *Config, stack *StackConfig) *Compose {
 	}
 
 	c.Volumes["geoip_data"] = Volume{
+		"external": false,
+	}
+
+	c.Volumes["agent_manager"] = Volume{
 		"external": false,
 	}
 
